@@ -1,0 +1,32 @@
+{
+  "name": "discordcmd",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "A configurable command handler built for large scale discord bot development",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Commandtechno/discordcmd.git"
+  },
+  "keywords": [
+    "discord",
+    "command",
+    "handler",
+    "discord.js",
+    "dynamic",
+    "command",
+    "handler"
+  ],
+  "author": "Commandtechno#0841",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Commandtechno/discordcmd/issues"
+  },
+  "homepage": "https://github.com/Commandtechno/discordcmd#readme",
+  "dependencies": {
+    "chokidar": "^3.5.1"
+  }
+}
