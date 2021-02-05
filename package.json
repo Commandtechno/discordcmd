@@ -1,7 +1,6 @@
 {
   "name": "discordcmd",
-  "version": "1.0.0",
-  "type": "module",
+  "version": "1.0.2",
   "description": "A configurable command handler built for large scale discord bot development",
   "main": "index.js",
   "scripts": {

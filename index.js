@@ -1,5 +1,5 @@
-import Collection from discord.js
-import watch from chokidar
+const {watch} = require('chokidar')
+const {Collection} = require('discord.js')
 const commands = new Collection()
 
 function init(path){
@@ -12,7 +12,7 @@ function init(path){
 }
 
 function add(path) {
-    const cmd = require('./' + path)
+    const cmd = require('../../' + path)
     cmd.path = path
     cmd.cmd.forEach(alias => {
         console.log("Loaded Command [" + alias + "]")
@@ -21,8 +21,8 @@ function add(path) {
 }
 
 function edit(path){
-    delete require.cache[require.resolve('./' + path)]
-    const cmd = require('./' + path)
+    delete require.cache[require.resolve('../../' + path)]
+    const cmd = require('../../' + path)
     cmd.cmd.forEach(alias => {
         console.log("Restarted Command [" + alias + "]")
         commands.set(alias, cmd)
