@@ -1,5 +1,5 @@
-const {Collection} = require('discord.js')
-const {watch} = require('chokidar')
+import Collection from discord.js
+import watch from chokidar
 const commands = new Collection()
 
 function init(path){
