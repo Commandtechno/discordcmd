@@ -1,65 +1,142 @@
-const {watch} = require('chokidar')
-const {Collection} = require('discord.js')
-const commands = new Collection()
+let stuff = null;
 
-function init(path, options = {}){
-    options = {
-        logging: options.hasOwnProperty('logging') ? options.logging : `{Event} Command [{name}]`,
-        name: typeof options.name === 'string' ? options.name : 'name',
-        alias: typeof options.alias === 'string' ? options.alias : 'aliases'
+const { watch } = require('chokidar');
+const { Collection } = require('discord.js');
+const { readdirSync } = require('fs')
+
+const types = {
+    'collection': Collection,
+    'json': Object,
+    'class': Collection
+};
+
+const register = {
+    json(key, value, event, options) {
+        stuff[key] = value;
+        log(key, event, options);
+    },
+
+    collection(key, value, event, options) {
+        stuff.set(key, value);
+        log(key, event, options);
+    },
+    
+    class(key, value, event, options) {
+        stuff.set(key, value);
+        log(key, event, options)
     }
+}
 
-    watch(path)
+const unregister = {
+    json(key, event, options) {
+        delete stuff[key];
+        log(key, event, options);
+    },
+
+    collection(key, event, options) {
+        stuff.delete(key);
+        log(key, event, options);
+    },
+    
+    class(key, event, options) {
+        stuff.delete(key);
+        log(key, event, options)
+    }
+}
+
+/**
+ * 
+ * @param {Object} options Options
+ * @param {string} options.type Type of command handler (collection, class, json) [Default = collection]
+ * @param {string} options.path Path to your commands folder relative to entry point [Default = ./commands]
+ * @param {string} options.name The exported name variable for your commands, set to null for none [Default = name]
+ * @param {string} options.alias The exported alias array variable for your commands, set to null for none [Default = aliases]
+ * @param {string} options.logging The logging format, set to null for none (Variables: {event}, {name}) [Default = {event} Command [{name}]]
+ * @param {string} options.static Whether it detects when a file is modified (Disable for deployment) [Default = false]
+ * 
+ * @example discordcmd({
+ *      type: "collection",
+ *      path: "./cmds",
+ *      name: "trigger",
+ *      alias: "alias",
+ *      logging: "Command {name} has been {event}",
+ *      static: false
+ * })
+ */
+
+function init(options = {}) {
+    path = typeof path === 'string' ? path : './commands';
+
+    options = {
+        type: types[options.type] ? options.type : 'collection',
+        path: typeof options.path === 'string' ? options.path : './commands',
+        name: typeof options.name === 'string' ? options.name : 'name',
+        alias: typeof options.alias === 'string' ? options.alias : 'aliases',
+        logging: typeof options.logging === 'string' ? options.logging : '{event} Command [{name}]',
+        static: options.static === true ? true : false
+    };
+
+    stuff = new types[options.type]
+
+    if(options.static) load(options.path, options);
+    else watch(path)
         .on('add', path => add(path, options))
         .on('change', path => edit(path, options))
         .on('unlink', path => remove(path, options))
 
-    return commands
+    return stuff;
 }
 
 function add(path, options) {
-    if(!path.endsWith('.js')) return;
+    if (!path.endsWith('.js')) return;
 
-    const cmd = require('../../' + path)
-    cmd.path = path
+    const cmd = require('../../' + path);
+    cmd.path = path;
 
-    cmd[options.alias]?.forEach(alias => register(alias, cmd, 'Loaded', options))
-    if(typeof cmd[options.name] === 'string') register(cmd[options.name], cmd, 'Loaded', options)
+    if (Array.isArray(cmd[options.alias])) cmd[options.alias].forEach(alias => register[options.type](alias, cmd, 'Loaded', options));
+    if (typeof cmd[options.name] === 'string') register(cmd[options.name], cmd, 'Loaded', options);
 }
 
-function edit(path, options){
-    if(!path.endsWith('.js')) return;
+function edit(path, options) {
+    if (!path.endsWith('.js')) return;
 
-    delete require.cache[require.resolve('../../' + path)]
+    delete require.cache[require.resolve('../../' + path)];
 
-    const cmd = require('../../' + path)
-    cmd.path = path
+    const cmd = require('../../' + path);
+    cmd.path = path;
 
-    cmd[options.alias]?.forEach(alias => register(alias, cmd, 'Reloaded', options))
-    if(typeof cmd[options.name] === 'string') register(cmd[options.name], cmd, 'Reloaded', options)
+    if (Array.isArray(cmd[options.alias])) cmd[options.alias]
+    .forEach(alias => register[options.type]
+        (alias, cmd, 'Loaded', options));
+
+    if (typeof cmd[options.name] === 'string') register[options.type]
+        (cmd[options.name], cmd, 'Reloaded', options);
 }
 
-function remove(path, options){
-    if(!path.endsWith('.js')) return;
-    
-    [commands.filter(cmd => cmd.path === path).keys()]
-    .forEach(cmd => {
-        log(cmd, 'Deleted', options)
-        commands.delete(cmd)
-    })
-}
+function remove(path, options) {
+    if (!path.endsWith('.js')) return;
 
-function register(key, value, event, options){
-    commands.set(key, value)
-    log(key, event, options)
+    [...stuff
+        .filter(cmd => cmd.path === path)
+        .keys()
+    ]
+    .forEach(cmd => unregister[options.type](cmd, 'Deleted', options));
 }
 
 function log(key, event, options) {
-    if(typeof options.logging === 'string') console.log(
+    if (typeof options.logging === 'string') console.log(
         options.logging
-        .replace(/[^\\]\{event\}/gi, event)
-        .replace(/[^\\]\{name\}/gi, key)
-    )
+            .replace(/\{event\}/gi, event)
+            .replace(/\{name\}/gi, key)
+    );
 }
 
-module.exports = init
+function load(path, options) {
+    readdirSync(path)
+    .forEach(file => {
+        if(file.endsWith('.js')) add('commands/' + file, options)
+        else if(!file.includes('.')) load(path + '/' + file, options)
+    })
+}
+
+module.exports = init;
