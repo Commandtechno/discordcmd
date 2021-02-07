@@ -19,7 +19,7 @@ handler({
 	alias: "aliases" //The exported alias array variable for your commands, set to null for none 
 	logging: "{event} Command [{name}]", // The logging format, set to null for none (Variables: {Event}, {name})
 	static: false // Whether it detects when a file is modified (Disable for deployment)
-}
+})
 ```
 
 # Contribution
