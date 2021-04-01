@@ -23,7 +23,7 @@ const register = {
     
     class(key, value, event, options) {
         stuff.set(key, value);
-        log(key, event, options)
+        log(key, event, options);
     }
 }
 
@@ -40,7 +40,7 @@ const unregister = {
     
     class(key, event, options) {
         stuff.delete(key);
-        log(key, event, options)
+        log(key, event, options);
     }
 }
 
@@ -83,6 +83,7 @@ function init(options = {}) {
         .on('add', path => add(path, options))
         .on('change', path => edit(path, options))
         .on('unlink', path => remove(path, options))
+        .on('error', () => log('Unknown Error', 'Error', options))
 
     return stuff;
 }
@@ -90,20 +91,27 @@ function init(options = {}) {
 function add(path, options) {
     if (!path.endsWith('.js')) return;
 
-    const cmd = require('../../' + path);
-    cmd.path = path;
+    try {
+        const cmd = require('../../' + path);
+    } catch {
+        return log(path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), 'Error', options)
+    }
+    
+    cmd.path = '../../' + path;
 
+    register[options.type](cmd[options.name] || path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), cmd, 'Loaded', options);
     if (Array.isArray(cmd[options.alias])) cmd[options.alias].forEach(alias => register[options.type](alias, cmd, 'Loaded', options));
-    if (typeof cmd[options.name] === 'string') register(cmd[options.name], cmd, 'Loaded', options);
 }
 
 function edit(path, options) {
     if (!path.endsWith('.js')) return;
 
     delete require.cache[require.resolve('../../' + path)];
-
-    const cmd = require('../../' + path);
-    cmd.path = path;
+    try {
+        const cmd = require('../../' + path);
+    } catch {
+        return log(path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), 'Error', options)
+    }
 
     if (Array.isArray(cmd[options.alias])) cmd[options.alias]
     .forEach(alias => register[options.type]
@@ -117,7 +125,7 @@ function remove(path, options) {
     if (!path.endsWith('.js')) return;
 
     [...stuff
-        .filter(cmd => cmd.path === path)
+        .filter(cmd => cmd.path.endsWith(path))
         .keys()
     ]
     .forEach(cmd => unregister[options.type](cmd, 'Deleted', options));
@@ -134,7 +142,7 @@ function log(key, event, options) {
 function load(path, options) {
     readdirSync(path)
     .forEach(file => {
-        if(file.endsWith('.js')) add('commands/' + file, options)
+        if(file.endsWith('.js')) add(path + '/' + file, options)
         else if(!file.includes('.')) load(path + '/' + file, options)
     })
 }
