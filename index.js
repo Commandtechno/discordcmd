@@ -78,7 +78,7 @@ function init(options = {}) {
     stuff = new types[options.type]
 
     if (options.static) load(options.path, options);
-    else watch(path)
+    else watch(options.path)
         .on('add', path => add(path, options))
         .on('change', path => edit(path, options))
         .on('unlink', path => remove(path, options))
@@ -90,8 +90,9 @@ function init(options = {}) {
 function add(path, options) {
     if (!path.endsWith('.js')) return;
 
+    let cmd;
     try {
-        const cmd = require('../../' + path);
+        cmd = require('../../' + path);
     } catch {
         return log(path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), 'Error', options)
     }
@@ -106,8 +107,10 @@ function edit(path, options) {
     if (!path.endsWith('.js')) return;
 
     delete require.cache[require.resolve('../../' + path)];
+
+    let cmd;
     try {
-        const cmd = require('../../' + path);
+        cmd = require('../../' + path);
     } catch {
         return log(path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), 'Error', options)
     }
