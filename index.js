@@ -1,8 +1,12 @@
 let stuff = null;
 
 const { watch } = require('chokidar');
-const { Collection } = require('discord.js');
-const { readdirSync } = require('fs')
+const { readdirSync } = require('fs');
+
+let Collection;
+try {
+    Collection = require('discord.js').Collection
+} catch { }
 
 const types = {
     'collection': Collection,
@@ -71,7 +75,7 @@ function init(options = {}) {
         path: typeof options.path === 'string' ? options.path : './commands',
         name: typeof options.name === 'string' ? options.name : 'name',
         alias: typeof options.alias === 'string' ? options.alias : 'aliases',
-        logging: typeof options.logging === 'string' ? options.logging : '{event} Command [{name}]',
+        logging: typeof options.logging === false ? options.logging : '{event} Command [{name}]',
         static: options.static === true ? true : false
     };
 
@@ -119,8 +123,8 @@ function edit(path, options) {
         .forEach(alias => register[options.type]
             (alias, cmd, 'Loaded', options));
 
-    if (typeof cmd[options.name] === 'string') register[options.type]
-        (cmd[options.name], cmd, 'Reloaded', options);
+    register[options.type]
+        (cmd[options.name] || path.replace(/^.+[\/\\]/, '').replace(/\.js$/, ''), cmd, 'Reloaded', options);
 }
 
 function remove(path, options) {
